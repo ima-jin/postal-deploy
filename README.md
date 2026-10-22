@@ -37,7 +37,7 @@ target, `scripts/deploy.sh`:
    and re-ups only the selected services without pulling. The job stays failed.
    A rollback failure reports `CRITICAL` and requires operator intervention.
 
-All compose invocations use `-f docker-compose.yml -f <managed override>`; host
+Deployment apply invocations use `-f docker-compose.yml -f <managed override>`; host
 and directory are not baked into workflows. The compose project must match the
 existing installation: the directory's basename is the default project name
 (production is `postal`), or set `COMPOSE_PROJECT_NAME` in the host's existing
@@ -95,3 +95,6 @@ lint both workflows with actionlint 1.7.7, run
 Tests mock Docker/curl to cover successful deployment, exact-image rollback,
 partial startup/pull/health failures, non-200 responses, validation, locking,
 SSH trust boundaries, main-only publishing, and dev-before-production gating.
+An offline real-Compose configuration test also verifies that both deployment
+and rollback overrides change only the selected images, not dependencies,
+commands, mounts, MariaDB, or RabbitMQ.
