@@ -7,10 +7,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_upstream_is_one_line_exact_production_pin(self):
-        self.assertEqual((ROOT / "Dockerfile").read_text().strip(),
+    def test_upstream_retains_exact_production_pin_with_additive_layer(self):
+        self.assertEqual((ROOT / "Dockerfile").read_text().splitlines()[0],
                          "FROM ghcr.io/postalserver/postal:3.3.6@sha256:"
                          "4f96b2e527c5589e6b73e25aebf877917bba45b460f535ecfca527488745e926")
+        self.assertIn("COPY --chown=postal:postal postal/ /opt/postal/app/",
+                      (ROOT / "Dockerfile").read_text())
 
     def test_ci_builds_prs_but_publishes_only_main_pushes(self):
         ci = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -26,6 +28,20 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("needs: test", ci)
         self.assertIn("python3 -m unittest discover -s tests", ci)
         self.assertIn("/tmp/actionlint", ci)
+        self.assertIn("load: true", ci)
+        self.assertIn("bash scripts/test-admin.sh ghcr.io/ima-jin/postal-deploy:${{ github.sha }}", ci)
+
+    def test_admin_tests_use_private_disposable_database_and_built_image(self):
+        script = (ROOT / "scripts/test-admin.sh").read_text()
+        self.assertIn('docker network create --internal "$network"', script)
+        self.assertNotIn("--publish", script)
+        self.assertIn('-e MAIN_DB_DATABASE=postal_test', script)
+        self.assertIn('trap cleanup EXIT', script)
+        self.assertIn('db:schema:load', script)
+        self.assertIn('"$image"', script)
+        self.assertIn('bundle exec ruby /imajin-tests/domains_test.rb', script)
+        ignored = (ROOT / ".dockerignore").read_text()
+        self.assertIn("!postal/**", ignored)
 
     def test_deploy_accepts_only_successful_trusted_main_push(self):
         deploy = (ROOT / ".github/workflows/deploy.yml").read_text()
