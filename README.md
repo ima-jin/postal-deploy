@@ -98,3 +98,5 @@ SSH trust boundaries, main-only publishing, and dev-before-production gating.
 An offline real-Compose configuration test also verifies that both deployment
 and rollback overrides change only the selected images, not dependencies,
 commands, mounts, MariaDB, or RabbitMQ.
+
+Admin domain endpoint work is tracked in issue #2.
